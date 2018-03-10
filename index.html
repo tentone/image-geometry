@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset=utf-8>
+	<title>Mesh 2D</title>
+</head>
+<body>
+	<script type="text/javascript" src="lib/three.min.js"></script>
+	<script type="text/javascript" src="lib/OrbitControls.js"></script>
+	<script type="text/javascript">
+		var imageSource = "data/umbrella.png"
+
+		var image = document.createElement("img");
+		image.src = imageSource;
+		image.onload = function()
+		{
+			var canvas = document.createElement("canvas");
+			canvas.width = image.naturalWidth;
+			canvas.height = image.naturalHeight;
+			
+			var context = canvas.getContext("2d");
+			context.drawImage(image, 0, 0);
+
+			var data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+
+			var triangles = triangulateImage(data, 40);
+			calculateBoundingBox(data, 40);
+			drawTriangles(canvas, triangles);
+			visualizeGeometry(generateGeometry(triangles));
+
+			function vectorsClockWise(p1, p2, p3)
+			{
+				var val = (p2.y - p1.y) * (p3.x - p2.x) - (p2.x - p1.x) * (p3.y - p2.y);
+
+				return val >= 0;
+			}
+
+			function sortTriangle(triangle)
+			{
+				if(vectorsClockWise(triangle.a, triangle.b, triangle.c))
+				{
+					var temp = triangle.a;
+					triangle.a = triangle.b;
+					triangle.b = temp;
+				}
+			}
+
+			function triangulateImage(data, threshold)
+			{
+				var triangles = [];
+				var points = [];
+
+				for(var y = 0; y < canvas.height; y += 30)
+				{	
+					var transitions = 0;
+					var currentTransparent = true;
+
+					for(var x = 0; x < canvas.width; x++)
+					{
+						var i = calcIndex(x, y);
+					
+						var isTransparent = data[i + 3] < threshold;
+
+						if(currentTransparent !== isTransparent)
+						{
+							transitions++;
+							currentTransparent = isTransparent;
+
+							context.fillStyle = "#FF0000";
+							context.beginPath();
+							context.arc(x, y, 3, 0, 2*Math.PI);
+							context.fill();
+
+							points.push(new THREE.Vector3(x, y, 0));
+							while(points.length > 3)
+							{
+								points.shift();
+							}
+
+							if(points.length === 3)
+							{
+								var triangle = new THREE.Triangle(points[0], points[1], points[2]);
+								sortTriangle(triangle);
+								triangles.push(triangle);
+							}
+
+							if(transitions === 2)
+							{
+								break;
+							}
+						}
+					}
+				}
+
+				return triangles;
+			}
+
+			function calculateBoundingBox(data, threshold)
+			{
+				var origin = new THREE.Vector2(canvas.width, canvas.height);
+				var end  = new THREE.Vector2(0, 0);
+
+				for(var y = 0; y < canvas.height; y ++)
+				{
+					for(var x = 0; x < canvas.width; x++)
+					{
+						var i = calcIndex(x, y);
+
+						if(data[i + 3] > threshold)
+						{
+							if(x > end.x) end.x = x;
+							if(y > end.y) end.y = y;
+							if(x < origin.x) origin.x = x;
+							if(y < origin.y) origin.y = y;
+						}
+					}
+				}
+
+				console.log(origin, end);
+
+				return {origin: origin, end: end};
+			}
+
+			function generateGeometry(triangles)
+			{
+				var uvs = [];
+				var vertices = [];
+				var normals = [];
+				var faces = [];
+
+				function addVector(vector)
+				{
+					var scale = image.naturalWidth;
+					vertices.push(vector.x / scale, vector.y / scale, vector.z / scale);
+					normals.push(0, -1, 0);
+					uvs.push(vector.x / image.naturalWidth, (image.naturalHeight - vector.y) / image.naturalHeight);
+				}
+
+				for(var i = 0; i < triangles.length; i++)
+				{
+					addVector(triangles[i].a);
+					addVector(triangles[i].b);
+					addVector(triangles[i].c);
+				}
+
+				var geometry = new THREE.BufferGeometry();
+				geometry.addAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+				geometry.addAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+				geometry.addAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+
+				return geometry;
+			}
+
+			function drawTriangles(canvas, triangles)
+			{
+				var context = canvas.getContext("2d");
+				context.strokeStyle = "#00FF00";
+				context.beginPath();
+				for(var i = 0; i < triangles.length; i++)
+				{
+					var triangle = triangles[i];
+					context.moveTo(triangle.a.x, triangle.a.y);
+					context.lineTo(triangle.b.x, triangle.b.y);
+					context.lineTo(triangle.c.x, triangle.c.y);
+					context.lineTo(triangle.a.x, triangle.a.y);
+				}
+				context.stroke();
+				document.body.appendChild(canvas);
+			}
+
+			function calcIndex(x, y)
+			{
+				return (x * 4) + (y * canvas.width * 4);
+			}
+
+			function calcCoord(index)
+			{
+				return {x: (index / 4) % canvas.width, y: Math.floor((index / 4) / canvas.width)};
+			}
+
+			function visualizeGeometry(geometry)
+			{
+				var scene = new THREE.Scene();
+				scene.background = new THREE.Color(0.4, 0.4, 0.4);
+
+				var camera = new THREE.PerspectiveCamera(75, 640 / 480, 0.1, 1000);
+				var controls = new THREE.OrbitControls(camera);
+				camera.position.z = 3;
+
+				var texture = new THREE.TextureLoader().load(imageSource);
+
+				var renderer = new THREE.WebGLRenderer({antialias:true});
+				renderer.setSize(640, 480);
+				document.body.appendChild(renderer.domElement);
+
+				var wireframe = new THREE.MeshBasicMaterial({wireframe: true, color:0xFFFF00});
+				var material = new THREE.MeshBasicMaterial({map: texture});
+
+				scene.add(new THREE.Mesh(geometry, wireframe));
+				scene.add(new THREE.Mesh(geometry, material));
+
+
+				function animate()
+				{
+					requestAnimationFrame(animate);
+
+					controls.update();
+					renderer.render(scene, camera);
+				}
+				animate();
+			}
+		};
+	</script>
+</body>
+</html>
