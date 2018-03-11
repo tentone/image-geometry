@@ -24,7 +24,6 @@
 			var data = context.getImageData(0, 0, canvas.width, canvas.height).data;
 
 			var triangles = triangulateImage(data, 40);
-			calculateBoundingBox(data, 40);
 			drawTriangles(canvas, triangles);
 			visualizeGeometry(generateGeometry(triangles));
 
@@ -47,10 +46,51 @@
 
 			function triangulateImage(data, threshold)
 			{
+				//Calculate critical points
+				var critical = [];
+				var lastTransitions = 0;
+
+				for(var y = 0; y < canvas.height; y ++)
+				{	
+					var transitions = 0;
+					var currentTransparent = true;
+
+					for(var x = 0; x < canvas.width; x++)
+					{
+						var i = calcIndex(x, y);
+						var isTransparent = data[i + 3] < threshold;
+
+						if(currentTransparent !== isTransparent)
+						{
+							transitions++;
+							currentTransparent = isTransparent;
+						}
+					}
+
+					if(transitions !== lastTransitions)
+					{
+						critical.push({y:y, transitions:transitions});
+						lastTransitions = transitions;
+					}
+				}
+
+				console.log(critical);
+
+				//Draw critical lines
+				context.strokeStyle = "#0000FF";
+				context.beginPath();
+				for(var i = 0; i < critical.length; i++)
+				{
+					context.moveTo(0, critical[i].y);
+					context.lineTo(canvas.width, critical[i].y);
+				}
+				context.stroke();
+
+				//Calculate triangles
 				var triangles = [];
 				var points = [];
 
-				for(var y = 0; y < canvas.height; y += 30)
+				for(var y = 0; y < canvas.height; y += 50)
 				{	
 					var transitions = 0;
 					var currentTransparent = true;
@@ -115,8 +155,6 @@
 						}
 					}
 				}
-
-				console.log(origin, end);
 
 				return {origin: origin, end: end};
 			}
