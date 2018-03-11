@@ -68,10 +68,10 @@
 						}
 					}
 
-					/*if(transitions % 2 !== 0)
+					if(transitions % 2 !== 0)
 					{
-						transitions++;
-					}*/
+						continue;
+					}
 
 					if(transitions !== lastTransitions)
 					{
@@ -100,53 +100,64 @@
 				//Calculate triangles
 				var triangles = [];
 				var minTransitions = 0;
-				var maxTransitions = 2;
+				var maxTransitions = 40;
 
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
-					var points = [];
-
-					//TODO Close triangle and clear points on each transition also
-
-					for(var y = 0; y < canvas.height; y += 10)
-					{	
-						var transitions = 0;
-						var currentTransparent = true;
-
-						for(var x = 0; x < canvas.width; x++)
+					
+					for(var l = 0; l < critical.length - 1; l++)
+					{
+						/*var size = critical[l + 1].y - critical[l].y;
+						var step = 30;
+						while(size % step !== 0)
 						{
-							var i = calcIndex(x, y);
+							step--;
+						}
+						console.log(step);*/
 						
-							var isTransparent = data[i + 3] < threshold;
+						var points = [];
+						
+						for(var y = critical[l].y; y < critical[l + 1].y; y += 10)
+						{	
+							var transitions = 0;
+							var currentTransparent = true;
 
-							if(currentTransparent !== isTransparent)
+							for(var x = 0; x < canvas.width; x++)
 							{
-								transitions++;
-								currentTransparent = isTransparent;
+								var i = calcIndex(x, y);
+							
+								var isTransparent = (data[i + 3] < threshold) || (x === canvas.width - 1 && !isTransparent);
 
-								if(transitions > k && transitions <= (k+2))
+								if(currentTransparent !== isTransparent)
 								{
-									context.fillStyle = "#FF0000";
-									context.beginPath();
-									context.arc(x, y, 3, 0, 2*Math.PI);
-									context.fill();
+									transitions++;
+									currentTransparent = isTransparent;
 
-									points.push(new THREE.Vector3(x, y, 0));
-									while(points.length > 3)
+									if(transitions > k && transitions <= (k+2))
 									{
-										points.shift();
-									}
+										context.fillStyle = "#FF0000";
+										context.beginPath();
+										context.arc(x, y, 3, 0, 2*Math.PI);
+										context.fill();
 
-									if(points.length === 3)
-									{
-										var triangle = new THREE.Triangle(points[0], points[1], points[2]);
-										sortTriangle(triangle);
-										triangles.push(triangle);
+										points.push(new THREE.Vector3(x, y, 0));
+										while(points.length > 3)
+										{
+											points.shift();
+										}
+
+										if(points.length === 3)
+										{
+											var triangle = new THREE.Triangle(points[0], points[1], points[2]);
+											sortTriangle(triangle);
+											triangles.push(triangle);
+										}
 									}
 								}
 							}
 						}
 					}
+
 				}
 
 				return triangles;
