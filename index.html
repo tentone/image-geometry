@@ -55,27 +55,26 @@
 				{	
 					var transitions = 0;
 					var currentTransparent = true;
+					var points = [];
 
 					for(var x = 0; x < canvas.width; x++)
 					{
 						var i = calcIndex(x, y);
+
 						var isTransparent = data[i + 3] < threshold;
 
 						if(currentTransparent !== isTransparent)
 						{
 							transitions++;
 							currentTransparent = isTransparent;
+							points.push(x);
 						}
-					}
-
-					if(transitions % 2 !== 0)
-					{
-						continue;
 					}
 
 					if(transitions !== lastTransitions)
 					{
-						critical.push({y:y, transitions:transitions});
+						critical.push({y:y, points:points, transitions:transitions});
+
 						lastTransitions = transitions;
 
 						if(transitions > maxTransitions)
@@ -102,22 +101,21 @@
 				var minTransitions = 0;
 				var maxTransitions = 40;
 
+				var points = [];
+				
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
-					
 					for(var l = 0; l < critical.length - 1; l++)
 					{
-						/*var size = critical[l + 1].y - critical[l].y;
-						var step = 30;
+						//Calculate step
+						var size = critical[l + 1].y - critical[l].y;
+						var step = 5;
 						while(size % step !== 0)
 						{
 							step--;
 						}
-						console.log(step);*/
-						
-						var points = [];
-						
-						for(var y = critical[l].y; y < critical[l + 1].y; y += 10)
+
+						for(var y = critical[l].y; y <= critical[l + 1].y; y += step)
 						{	
 							var transitions = 0;
 							var currentTransparent = true;
@@ -161,6 +159,11 @@
 				}
 
 				return triangles;
+			}
+
+			function triangulateImageQuads(data, threshold)
+			{
+				//TODO <ADD CODE HERE>
 			}
 
 			function calculateBoundingBox(data, threshold)
