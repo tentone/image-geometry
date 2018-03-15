@@ -8,7 +8,7 @@
 	<script type="text/javascript" src="lib/three.min.js"></script>
 	<script type="text/javascript" src="lib/OrbitControls.js"></script>
 	<script type="text/javascript">
-		var imageSource = "data/umbrella.png"
+		var imageSource = "data/triangle.png"
 
 		var image = document.createElement("img");
 		image.src = imageSource;
@@ -101,21 +101,21 @@
 				var minTransitions = 0;
 				var maxTransitions = 40;
 
-				var points = [];
-				
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < critical.length - 1; l++)
 					{
 						//Calculate step
 						var size = critical[l + 1].y - critical[l].y;
-						var step = 5;
-						while(size % step !== 0)
+						var step = 10;
+						while(size % step !== 0 && step > 0)
 						{
 							step--;
 						}
 
-						for(var y = critical[l].y; y <= critical[l + 1].y; y += step)
+						var points = [];
+
+						for(var y = critical[l].y; y < critical[l + 1].y; y += step)
 						{	
 							var transitions = 0;
 							var currentTransparent = true;
