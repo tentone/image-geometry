@@ -8,7 +8,7 @@
 	<script type="text/javascript" src="lib/three.min.js"></script>
 	<script type="text/javascript" src="lib/OrbitControls.js"></script>
 	<script type="text/javascript">
-		var imageSource = "data/triangle.png"
+		var imageSource = "data/umbrella.png"
 
 		var image = document.createElement("img");
 		image.src = imageSource;
@@ -47,12 +47,11 @@
 			function triangulateImage(data, threshold)
 			{
 				//Calculate critical points
-				var critical = [];
 				var lastTransitions = 0;
-				var maxTransitionsFound = -1;
+				var critical = [];
 
 				for(var y = 0; y < canvas.height; y ++)
-				{	
+				{
 					var transitions = 0;
 					var currentTransparent = true;
 					var points = [];
@@ -73,34 +72,66 @@
 
 					if(transitions !== lastTransitions)
 					{
-						critical.push({y:y, points:points, transitions:transitions});
+						critical.push(
+						{
+							start: y,
+							startPoints: points,
+							end: y,
+							endPoints: points,
+							transitions: transitions
+						});
 
 						lastTransitions = transitions;
-
-						if(transitions > maxTransitions)
-						{
-							maxTransitionsFound = transitions;
-						}
+					}
+					else
+					{
+						critical[critical.length - 1].end = y;
+						critical[critical.length - 1].endPoints = points;
 					}
 				}
 
 				console.log(critical);
 
-				//Draw critical lines
-				context.strokeStyle = "#0000FF";
-				context.beginPath();
 				for(var i = 0; i < critical.length; i++)
 				{
-					context.moveTo(0, critical[i].y);
-					context.lineTo(canvas.width, critical[i].y);
+					//Start line
+					context.strokeStyle = "#0000FF";
+					context.beginPath();
+					context.moveTo(0, critical[i].start);
+					context.lineTo(canvas.width, critical[i].start);
+					context.stroke();
+
+					for(var j = 0; j < critical[i].startPoints.length; j++)
+					{
+						context.fillStyle = "#FF0000";
+						context.beginPath();
+						context.arc(critical[i].startPoints[j], critical[i].start, 3, 0, 2*Math.PI);
+						context.fill();
+					}
+
+					//End line
+					context.strokeStyle = "#00FF00";
+					context.beginPath();
+					context.moveTo(0, critical[i].end);
+					context.lineTo(canvas.width, critical[i].end);
+					context.stroke();
+
+					for(var j = 0; j < critical[i].endPoints.length; j++)
+					{
+						context.fillStyle = "#FFFF00";
+						context.beginPath();
+						context.arc(critical[i].endPoints[j], critical[i].end, 3, 0, 2*Math.PI);
+						context.fill();
+					}
 				}
-				context.stroke();
+
 
 				//Calculate triangles
 				var triangles = [];
 				var minTransitions = 0;
 				var maxTransitions = 40;
 
+				/*
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < critical.length - 1; l++)
@@ -133,11 +164,6 @@
 
 									if(transitions > k && transitions <= (k+2))
 									{
-										context.fillStyle = "#FF0000";
-										context.beginPath();
-										context.arc(x, y, 3, 0, 2*Math.PI);
-										context.fill();
-
 										points.push(new THREE.Vector3(x, y, 0));
 										while(points.length > 3)
 										{
@@ -157,6 +183,7 @@
 					}
 
 				}
+				*/
 
 				return triangles;
 			}
