@@ -83,12 +83,14 @@
 
 						lastTransitions = transitions;
 					}
-					else if(critical.length > 0)
+					else
 					{
 						critical[critical.length - 1].end = y;
 						critical[critical.length - 1].endPoints = points;
 					}
 				}
+
+				console.log(critical);
 
 				for(var i = 0; i < critical.length; i++)
 				{
@@ -135,7 +137,9 @@
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < critical.length - 1; l++)
-					{
+					{	
+						console.log(createdTriangle);
+
 						createdTriangle = false;
 						points = [];
 
