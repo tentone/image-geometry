@@ -62,28 +62,43 @@
 
 						var isTransparent = data[i + 3] < threshold;
 
+						//Transition
 						if(currentTransparent !== isTransparent)
 						{
 							transitions++;
 							currentTransparent = isTransparent;
 							points.push(x);
 						}
+						//Last pixel
+						else if(x === canvas.width - 1)
+						{
+							if(isTransparent === false)
+							{
+								transitions++;
+								points.push(x);
+							}
+						}
 					}
 
+					//If number of transitions is different create a new critical region
 					if(transitions !== lastTransitions)
 					{
-						critical.push(
+						if(transitions !== 0)
 						{
-							start: y,
-							startPoints: points,
-							end: y,
-							endPoints: points,
-							transitions: transitions
-						});
+							critical.push(
+							{
+								start: y,
+								startPoints: points,
+								end: y,
+								endPoints: points,
+								transitions: transitions
+							});
+						}
 
 						lastTransitions = transitions;
 					}
-					else
+					//Else update the end point of the current critical region
+					else if(critical.length > 0 && transitions !== 0)
 					{
 						critical[critical.length - 1].end = y;
 						critical[critical.length - 1].endPoints = points;
@@ -101,6 +116,7 @@
 					context.lineTo(canvas.width, critical[i].start);
 					context.stroke();
 
+					//Start points
 					for(var j = 0; j < critical[i].startPoints.length; j++)
 					{
 						context.fillStyle = "#FF0000";
@@ -116,6 +132,7 @@
 					context.lineTo(canvas.width, critical[i].end);
 					context.stroke();
 
+					//End points
 					for(var j = 0; j < critical[i].endPoints.length; j++)
 					{
 						context.fillStyle = "#FFFF00";
@@ -124,7 +141,6 @@
 						context.fill();
 					}
 				}
-
 
 				//Calculate triangles
 				var triangles = [];
@@ -136,16 +152,16 @@
 
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
-					for(var l = 0; l < critical.length - 1; l++)
+					for(var l = 0; l < critical.length; l++)
 					{	
-						console.log(createdTriangle);
-
 						createdTriangle = false;
 						points = [];
 
 						//Calculate step
 						var size = critical[l].end - critical[l].start;
-						var step = 30;
+						var step = 10;
+
+						//Calculate perfect integer step size
 						while(size % step !== 0 && step > 0)
 						{
 							step--;

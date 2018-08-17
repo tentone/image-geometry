@@ -1,11 +1,14 @@
 # Mesh2D
+ - A simple 2D Mesh generator for threejs.
+ - Receives a image with alpha channel and calculated a mesh to fit that image.
+ - Can be usefull for instancing shadowed 2D elements like fur or vegetation.
 
-A simple 2D Mesh generator for threejs. Developed as a sunday afternoon challenge.
+## Algorithm
+ - The algorithm goes through each horizontal line of the image.
+ - The imagem is divided into areas with a single entry and exit point.
 
-Receives a image with alpha channel and calculated a mesh to fit that image.
+## Usage
+ - TODO
 
-Can be usefull for instancing shadowed 2D elements like fur or vegetation.
-
-## Scanline method
-
-TODO
+## License
+ - MIT License (Attached to the repository).
