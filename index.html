@@ -12,7 +12,7 @@
 		 * THREE.ImageGeometry used to create triangulated geometry from alpha image.
 		 */
 		
-		var source = "data/umbrella.png"
+		var source = "data/test1.png"
 
 		var image = document.createElement("img");
 		image.src = source;
@@ -92,9 +92,8 @@
 							regions.push(
 							{
 								start: y,
-								startPoints: points,
 								end: y,
-								endPoints: points,
+								points: [points],
 								transitions: transitions
 							});
 						}
@@ -105,68 +104,49 @@
 					else if(regions.length > 0 && transitions !== 0)
 					{
 						regions[regions.length - 1].end = y;
-						regions[regions.length - 1].endPoints = points;
+						regions[regions.length - 1].points.push(points);
 					}
 				}
 
-				console.log("Horizontal regions found",regions);
-
-
-				for(var i = 0; i < regions.length; i++)
-				{
-					//Start line
-					context.strokeStyle = "#0000FF";
-					context.beginPath();
-					context.moveTo(0, regions[i].start);
-					context.lineTo(canvas.width, regions[i].start);
-					context.stroke();
-
-					//Start points
-					for(var j = 0; j < regions[i].startPoints.length; j++)
-					{
-						context.fillStyle = "#FF0000";
-						context.beginPath();
-						context.arc(regions[i].startPoints[j], regions[i].start, 3, 0, 2*Math.PI);
-						context.fill();
-					}
-
-					//End line
-					context.strokeStyle = "#00FF00";
-					context.beginPath();
-					context.moveTo(0, regions[i].end);
-					context.lineTo(canvas.width, regions[i].end);
-					context.stroke();
-
-					//End points
-					for(var j = 0; j < regions[i].endPoints.length; j++)
-					{
-						context.fillStyle = "#FFFF00";
-						context.beginPath();
-						context.arc(regions[i].endPoints[j], regions[i].end, 3, 0, 2*Math.PI);
-						context.fill();
-					}
-				}
+				console.log("Horizontal regions found", regions);
+				drawRegions(canvas, regions);
 
 				//Array of THREE.Triangle
 				var triangles = [];
+				
+				//-----------------NEW ALGORITHM-------------------
+				/*
+				var density = 4; //px/triangles
 
-				//Calculate triangles
+				for(var l = 0; l < regions.length; l++)
+				{	
+					//Region size
+					var size = regions[l].end - regions[l].start;
+
+					//Look for integer step size that fits the size of the region
+					var step = 10;
+					while(size % step !== 0 && step > 0)
+					{
+						step--;
+					}
+				}
+				*/
+				//-----------------OLD ALGORITHM-------------------
 				var minTransitions = 0;
 				var maxTransitions = 40;
-
 				var createdTriangle = true;
 
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < regions.length; l++)
-					{	
+					{
 						//Debug variable indicating if a triangle was created
 						var createdTriangle = false;
 
-						//List of points, used to create triangles
+						//Array of THREE.Vector3, used to create triangles
 						var points = [];
 
-						//Calculate step
+						//Region size
 						var size = regions[l].end - regions[l].start;
 
 						//Look for integer step size that fits the size of the region
@@ -176,6 +156,7 @@
 							step--;
 						}
 
+						//Loop trough the region lines
 						for(var y = regions[l].start; y <= regions[l].end; y += step)
 						{	
 							var transitions = 0;
@@ -192,9 +173,10 @@
 									transitions++;
 									currentTransparent = isTransparent;
 
-									if(transitions > k && transitions <= (k+2))
+									if(transitions > k && transitions <= k + 2)
 									{
 										points.push(new THREE.Vector3(x, y, 0));
+										
 										while(points.length > 3)
 										{
 											points.shift();
@@ -214,7 +196,7 @@
 						}
 					}
 				}
-
+			
 				return triangles;
 			}
 
@@ -272,6 +254,52 @@
 				geometry.addAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
 
 				return geometry;
+			}
+
+			//Draw the regions into a canvas
+			function drawRegions(canvas, regions)
+			{
+				var context = canvas.getContext("2d");
+
+				for(var i = 0; i < regions.length; i++)
+				{
+					//Start line
+					context.strokeStyle = "#0000FF";
+					context.beginPath();
+					context.moveTo(0, regions[i].start);
+					context.lineTo(canvas.width, regions[i].start);
+					context.stroke();
+
+					console.log(regions[i]);
+					var startPoints = regions[i].points[0];
+
+					//Start points
+					for(var j = 0; j < startPoints.length; j++)
+					{
+						context.fillStyle = "#FF0000";
+						context.beginPath();
+						context.arc(startPoints[j], regions[i].start, 3, 0, 2*Math.PI);
+						context.fill();
+					}
+
+					//End line
+					context.strokeStyle = "#00FF00";
+					context.beginPath();
+					context.moveTo(0, regions[i].end);
+					context.lineTo(canvas.width, regions[i].end);
+					context.stroke();
+
+					var endPoints = regions[i].points[regions[i].points.length - 1];
+
+					//End points
+					for(var j = 0; j < endPoints.length; j++)
+					{
+						context.fillStyle = "#FFFF00";
+						context.beginPath();
+						context.arc(endPoints[j], regions[i].end, 3, 0, 2*Math.PI);
+						context.fill();
+					}
+				}
 			}
 
 			//Draw triangle to a canvas
