@@ -12,7 +12,7 @@
 		 * THREE.ImageGeometry used to create triangulated geometry from alpha image.
 		 */
 		
-		var source = "data/umbrella.png"
+		var source = "data/grass.png"
 
 		var image = document.createElement("img");
 		image.src = source;
@@ -112,24 +112,42 @@
 					}
 				}
 
-				console.log("Horizontal regions found", regions);
 				drawRegions(canvas, regions);
 
 				//Array of THREE.Triangle
 				var triangles = [];
 
 				//Find min and max transitions
-				var minTransitions = 0;
+				var minTransitions = regions[0].transitions;
 				var maxTransitions = regions[0].transitions;
 
-				for(var l = 1; l < regions.length; l++)
-				{
+				for(var l = 0; l < regions.length; l++)
+				{	
+					//Fill gaps between regions
+					if(l < regions.length - 1)
+					{
+						//Compare last point of the current region, to check if they are sequential
+						if(regions[l + 1].start - regions[l].end === 1)
+						{
+							var firstPoints = regions[l].points[regions[l].points.length - 1];
+							var newPoints = [];
+
+							for(var o = 0; o < firstPoints.length; o++)
+							{
+								var point = firstPoints[o].clone();
+								point.y += 1;
+								newPoints.push(point);
+							}
+
+							regions[l].points.push(newPoints);
+						} 
+					}
 
 					//Min transitions
-					/*if(regions[l].transitions < minTransitions)
+					if(regions[l].transitions < minTransitions)
 					{
 						minTransitions = regions[l].transitions;
-					}*/
+					}
 
 					//Max trasitions
 					if(regions[l].transitions > maxTransitions)
@@ -137,19 +155,27 @@
 						maxTransitions = regions[l].transitions;
 					}
 				}
+				
+				//Offset transitions to match index
+				maxTransitions -= minTransitions;
+				minTransitions = 0;
 
-				console.log(minTransitions, maxTransitions);
+				//console.log("Regions: ", regions);
+				//console.log("Indexes: ", minTransitions, maxTransitions);
 				
 				//Iterate trought number of transitions
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < regions.length; l++)
 					{
+						//Step size
+						var step = 1;
+
 						//Array of THREE.Vector3, used to create triangles
 						var points = [];
-
+						
 						//Iterate points of the region
-						for(var x = 0; x < regions[l].points.length; x++)
+						for(var x = 0; x < regions[l].points.length; x += step)
 						{
 							var linePoints = regions[l].points[x];
 
@@ -171,7 +197,6 @@
 								}
 							}
 						}
-
 					}
 				}
 
@@ -313,7 +338,7 @@
 				var scene = new THREE.Scene();
 				scene.background = new THREE.Color(0.4, 0.4, 0.4);
 
-				var camera = new THREE.PerspectiveCamera(75, 640 / 480, 0.1, 1000);
+				var camera = new THREE.PerspectiveCamera(75, 640 / 480, 0.001, 1000);
 				var controls = new THREE.OrbitControls(camera);
 				camera.position.z = 3;
 
@@ -328,7 +353,6 @@
 
 				scene.add(new THREE.Mesh(geometry, wireframe));
 				scene.add(new THREE.Mesh(geometry, material));
-
 
 				function animate()
 				{
