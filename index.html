@@ -12,7 +12,7 @@
 		 * THREE.ImageGeometry used to create triangulated geometry from alpha image.
 		 */
 		
-		var source = "data/test1.png"
+		var source = "data/umbrella.png"
 
 		var image = document.createElement("img");
 		image.src = source;
@@ -50,10 +50,13 @@
 
 			function triangulateImage(data, threshold)
 			{
-				//Calculate regions points
-				var lastTransitions = 0;
+				//List of regions extracted from the image
 				var regions = [];
+				
+				//Transitions from the last row
+				var lastTransitions = 0;
 
+				//Analyse image detect regions and extract points
 				for(var y = 0; y < canvas.height; y ++)
 				{
 					var transitions = 0;
@@ -71,7 +74,7 @@
 						{
 							transitions++;
 							currentTransparent = isTransparent;
-							points.push(x);
+							points.push(new THREE.Vector3(x, y, 0));
 						}
 						//Last pixel
 						else if(x === canvas.width - 1)
@@ -79,7 +82,7 @@
 							if(isTransparent === false)
 							{
 								transitions++;
-								points.push(x);
+								points.push(new THREE.Vector3(x, y, 0));
 							}
 						}
 					}
@@ -89,6 +92,7 @@
 					{
 						if(transitions !== 0)
 						{
+							//Create new region
 							regions.push(
 							{
 								start: y,
@@ -113,90 +117,64 @@
 
 				//Array of THREE.Triangle
 				var triangles = [];
-				
-				//-----------------NEW ALGORITHM-------------------
-				/*
-				var density = 4; //px/triangles
 
-				for(var l = 0; l < regions.length; l++)
-				{	
-					//Region size
-					var size = regions[l].end - regions[l].start;
+				//Find min and max transitions
+				var minTransitions = 0;
+				var maxTransitions = regions[0].transitions;
 
-					//Look for integer step size that fits the size of the region
-					var step = 10;
-					while(size % step !== 0 && step > 0)
+				for(var l = 1; l < regions.length; l++)
+				{
+
+					//Min transitions
+					/*if(regions[l].transitions < minTransitions)
 					{
-						step--;
+						minTransitions = regions[l].transitions;
+					}*/
+
+					//Max trasitions
+					if(regions[l].transitions > maxTransitions)
+					{
+						maxTransitions = regions[l].transitions;
 					}
 				}
-				*/
-				//-----------------OLD ALGORITHM-------------------
-				var minTransitions = 0;
-				var maxTransitions = 40;
-				var createdTriangle = true;
 
+				console.log(minTransitions, maxTransitions);
+				
+				//Iterate trought number of transitions
 				for(var k = minTransitions; k < maxTransitions; k += 2)
 				{
 					for(var l = 0; l < regions.length; l++)
 					{
-						//Debug variable indicating if a triangle was created
-						var createdTriangle = false;
-
 						//Array of THREE.Vector3, used to create triangles
 						var points = [];
 
-						//Region size
-						var size = regions[l].end - regions[l].start;
-
-						//Look for integer step size that fits the size of the region
-						var step = 10;
-						while(size % step !== 0 && step > 0)
+						//Iterate points of the region
+						for(var x = 0; x < regions[l].points.length; x++)
 						{
-							step--;
-						}
+							var linePoints = regions[l].points[x];
 
-						//Loop trough the region lines
-						for(var y = regions[l].start; y <= regions[l].end; y += step)
-						{	
-							var transitions = 0;
-							var currentTransparent = true;
-
-							for(var x = 0; x < canvas.width; x++)
+							//Iterate points of the region
+							for(var m = k; m < linePoints.length && m < (k + 2); m++)
 							{
-								var i = calcIndex(x, y);
-							
-								var isTransparent = (data[i + 3] < threshold) || (x === canvas.width - 1 && !isTransparent);
-
-								if(currentTransparent !== isTransparent)
+								points.push(linePoints[m]);
+								
+								while(points.length > 3)
 								{
-									transitions++;
-									currentTransparent = isTransparent;
+									points.shift();
+								}
 
-									if(transitions > k && transitions <= k + 2)
-									{
-										points.push(new THREE.Vector3(x, y, 0));
-										
-										while(points.length > 3)
-										{
-											points.shift();
-										}
-
-										if(points.length === 3)
-										{
-											var triangle = new THREE.Triangle(points[0], points[1], points[2]);
-											sortTriangle(triangle);
-											triangles.push(triangle);
-
-											createdTriangle = true;
-										}
-									}
+								if(points.length === 3)
+								{
+									var triangle = new THREE.Triangle(points[0], points[1], points[2]);
+									sortTriangle(triangle);
+									triangles.push(triangle);
 								}
 							}
 						}
+
 					}
 				}
-			
+
 				return triangles;
 			}
 
@@ -270,7 +248,6 @@
 					context.lineTo(canvas.width, regions[i].start);
 					context.stroke();
 
-					console.log(regions[i]);
 					var startPoints = regions[i].points[0];
 
 					//Start points
@@ -278,7 +255,7 @@
 					{
 						context.fillStyle = "#FF0000";
 						context.beginPath();
-						context.arc(startPoints[j], regions[i].start, 3, 0, 2*Math.PI);
+						context.arc(startPoints[j].x, regions[i].start, 3, 0, 2*Math.PI);
 						context.fill();
 					}
 
@@ -296,7 +273,7 @@
 					{
 						context.fillStyle = "#FFFF00";
 						context.beginPath();
-						context.arc(endPoints[j], regions[i].end, 3, 0, 2*Math.PI);
+						context.arc(endPoints[j].x, regions[i].end, 3, 0, 2*Math.PI);
 						context.fill();
 					}
 				}
