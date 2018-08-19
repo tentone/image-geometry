@@ -25,10 +25,27 @@ function ImageGeometry(source)
 	 * @type {Number}
 	 */
 	this.threshold = 40;
+
+	/**
+	 * Density of the generated geometry in px/triangles
+	 *
+	 * Bigger value means less triangles.
+	 * 
+	 * @property desity.
+	 * @type {Number}
+	 */
+	this.density = 1;
 }
 
 ImageGeometry.prototype = Object.create(THREE.BufferGeometry.prototype);
 
+/**
+ * Load image from URL and create geometry.
+ *
+ * @method load
+ * @param {String} url Image URL
+ * @param {Function} onLoad On load callback.
+ */
 ImageGeometry.prototype.load = function(url, onLoad)
 {
 	var self = this;
@@ -42,6 +59,12 @@ ImageGeometry.prototype.load = function(url, onLoad)
 	};
 };
 
+/**
+ * Generate geometry from image element.
+ *
+ * @method generate
+ * @param {DOM} image DOM image element.
+ */
 ImageGeometry.prototype.generate = function(image)
 {
 	var self = this;
@@ -196,11 +219,6 @@ ImageGeometry.prototype.generate = function(image)
 				//Step size
 				var step = 1;
 
-				while(step > 1 && step % regions[l].points.length !== 0)
-				{
-					step--;
-				}
-
 				//Array of THREE.Vector3, used to create triangles
 				var points = [];
 				
@@ -231,6 +249,11 @@ ImageGeometry.prototype.generate = function(image)
 		}
 
 		return triangles;
+	}
+
+	function interpolatePoints(index, regions)
+	{
+
 	}
 
 	//Calculate the bounding box of the image.
@@ -281,13 +304,9 @@ ImageGeometry.prototype.generate = function(image)
 			addVector(triangles[i].c);
 		}
 
-		//var geometry = new THREE.BufferGeometry();
-		var geometry = self;
-		geometry.addAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-		geometry.addAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-		geometry.addAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-
-		return geometry;
+		self.addAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+		self.addAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+		self.addAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
 	}
 
 	function calcIndex(x, y)
@@ -302,7 +321,7 @@ ImageGeometry.prototype.generate = function(image)
 };
 
 //Draw the regions into a canvas
-ImageGeometry.drawRegions = function(canvas, regions)
+ImageGeometry.debugRegions = function(canvas, regions)
 {
 	var context = canvas.getContext("2d");
 
@@ -347,7 +366,7 @@ ImageGeometry.drawRegions = function(canvas, regions)
 };
 
 //Draw triangle to a canvas
-ImageGeometry.drawTriangles = function(canvas, triangles)
+ImageGeometry.debugTriangles = function(canvas, triangles)
 {
 	var context = canvas.getContext("2d");
 	context.strokeStyle = "#00FF00";
