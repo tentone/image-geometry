@@ -45,20 +45,56 @@
 		}
 		animate();
 
-		var source = "data/grass.png";
-		var geometry = new ImageGeometry();
+		var source = "data/umbrella.png";
 		
-		geometry.load(source, function(geometry)
+		var image = document.createElement("img");
+		image.src = source;
+		image.style.position = "absolute";
+		image.style.zIndex = "100";
+		image.style.height = "30%";
+		document.body.appendChild(image);
+
+		image.onload = function()
 		{
-			//THREE.ShaderLib.basic
+			var geometry = new ImageGeometry();
+			geometry.generate(image);
+
 			var texture = new THREE.TextureLoader().load(source);
-			var material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture});
-			
-			scene.add(new THREE.Mesh(geometry, material));
-			scene.add(new THREE.Mesh(geometry, wireframe));
-		});
+			var material = new THREE.MeshBasicMaterial({side:THREE.DoubleSide, map:texture, transparent:true});
 
+			var object = new THREE.Mesh(geometry, material);
+			scene.add(object);
 
+			var helper = new THREE.Mesh(geometry, wireframe);
+			scene.add(helper);
+
+			var slider = document.createElement("input");
+			slider.type = "range";
+			slider.style.position = "absolute";
+			slider.style.width = "150px";
+			slider.style.height = "20px";
+			slider.style.top = "33%";
+			slider.max = 0.4;
+			slider.min = 0.0;
+			slider.step = 0.01;
+			slider.value = geometry.detail;
+			slider.onchange = function()
+			{
+				geometry.dispose();
+				geometry = new ImageGeometry();
+				geometry.detail = slider.value;
+				geometry.generate(image);
+
+				scene.remove(object);
+				object = new THREE.Mesh(geometry, material);
+				scene.add(object);
+
+				scene.remove(helper);
+				helper = new THREE.Mesh(geometry, wireframe);
+				scene.add(helper);
+			}
+			document.body.appendChild(slider);
+		};
 	</script>
 </body>
 </html>

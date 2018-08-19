@@ -3,7 +3,7 @@
 //Check if three.js is included
 if(window.THREE === undefined)
 {
-	console.error("THREE.ImageGeometry: three.js is required for this library to work.");
+	console.error("ImageGeometry: three.js is required for this library to work.");
 }
 
 /** 
@@ -33,13 +33,26 @@ function ImageGeometry(source)
 	 *
 	 * Value between 0 and 1.
 	 * 
-	 * @property desity.
+	 * @property detail.
 	 * @type {Number}
 	 */
-	this.density = 1;
+	this.detail = 0.06;
+
+	/**
+	 * Vertical or horizontal mode.
+	 *
+	 * @property mode
+	 * @type {Number}
+	 */
+	this.mode = ImageGeometry.HORIZONTAL;
 }
 
 ImageGeometry.prototype = Object.create(THREE.BufferGeometry.prototype);
+
+ImageGeometry.DEBUG = false;
+
+ImageGeometry.HORIZONTAL = 0;
+ImageGeometry.VERTICAL = 1;
 
 /**
  * Load image from URL and create geometry.
@@ -54,16 +67,11 @@ ImageGeometry.prototype.load = function(url, onLoad)
 
 	var image = document.createElement("img");
 	image.src = source;
-	image.style.position = "absolute";
-	image.style.zIndex = "100";
-	image.style.height = "50%";
 	image.onload = function()
 	{
 		self.generate(image);		
 		onLoad(self);
 	};
-	
-	document.body.appendChild(image);
 };
 
 /**
@@ -81,12 +89,38 @@ ImageGeometry.prototype.generate = function(image)
 	canvas.width = image.naturalWidth;
 	canvas.height = image.naturalHeight;
 
+	if(ImageGeometry.DEBUG)
+	{
+		canvas.style.position = "absolute";
+		canvas.style.zIndex = "100";
+		canvas.style.height = "50%";
+		document.body.appendChild(canvas);
+	}
+
 	//Draw image
 	var context = canvas.getContext("2d");
+	
+	if(this.mode === ImageGeometry.VERTICAL)
+	{
+		//var size = image.naturalWidth > image.naturalHeight ? image.naturalWidth : image.naturalHeight;
+		//canvas.width = size;
+		//canvas.height = size;
+		
+		context.translate(canvas.width / 2, canvas.height / 2);
+		context.rotate(Math.PI/2);
+		context.translate(-canvas.width / 2, -canvas.height / 2);
+	}
+	
 	context.drawImage(image, 0, 0);
 
 	var data = context.getImageData(0, 0, canvas.width, canvas.height).data;
-	generateGeometry(triangulateImage(data, this.threshold));
+	var triangles = triangulateImage(data, this.threshold);
+	generateGeometry(triangles);
+
+	if(ImageGeometry.DEBUG)
+	{
+		ImageGeometry.debugTriangles(canvas, triangles);
+	}
 
 	function vectorsClockWise(p1, p2, p3)
 	{
@@ -173,7 +207,7 @@ ImageGeometry.prototype.generate = function(image)
 		var triangles = [];
 
 		//Find min and max transitions
-		var minTransitions = regions[0].transitions;
+		var minTransitions = 0;
 		var maxTransitions = regions[0].transitions;
 
 		for(var l = 0; l < regions.length; l++)
@@ -198,12 +232,6 @@ ImageGeometry.prototype.generate = function(image)
 				} 
 			}
 
-			//Min transitions
-			if(regions[l].transitions < minTransitions)
-			{
-				minTransitions = regions[l].transitions;
-			}
-
 			//Max trasitions
 			if(regions[l].transitions > maxTransitions)
 			{
@@ -215,9 +243,6 @@ ImageGeometry.prototype.generate = function(image)
 		maxTransitions -= minTransitions;
 		minTransitions = 0;
 
-		//console.log("Regions: ", regions);
-		//console.log("Indexes: ", minTransitions, maxTransitions);
-		
 		//Iterate trought number of transitions
 		for(var k = minTransitions; k < maxTransitions; k += 2)
 		{
@@ -225,21 +250,6 @@ ImageGeometry.prototype.generate = function(image)
 			{
 				//Array of THREE.Vector3, used to create triangles
 				var points = [];
-
-				//Step size
-				var step;
-				if(regions[l].points.length < 3)
-				{
-					step = 1;
-				}
-				else
-				{
-					step = regions[l].points.length - 1;
-					while(step > 1 && (step % (regions[l].points.length - 1)) !== 0)
-					{
-						step--;
-					}
-				}
 
 				//Iterate points of the line in the region
 				function processLine(linePoints)
@@ -262,14 +272,34 @@ ImageGeometry.prototype.generate = function(image)
 					}
 				}
 
+				//Step size
+				var distance = regions[l].end - regions[l].start;
+				var step = (regions[l].points.length - 3);
+				step = Math.floor(step / (distance * self.detail));
+				if(step === 0)
+				{
+					step = 1;
+				}
+
+				//First point
+				processLine(regions[l].points[0]);
+
 				//Iterate points of the region
-				for(var x = 0; x < regions[l].points.length; x += step)
+				for(var x = 1; x < regions[l].points.length - 1; x += step)
 				{
 					processLine(regions[l].points[x]);
 				}
+
+				//Last point
+				processLine(regions[l].points[regions[l].points.length - 1]);
 			}
 		}
 
+		if(ImageGeometry.DEBUG)
+		{
+			ImageGeometry.debugRegions(canvas, regions);
+		}
+		
 		return triangles;
 	}
 
@@ -309,9 +339,18 @@ ImageGeometry.prototype.generate = function(image)
 		function addVector(vector)
 		{
 			var scale = image.naturalWidth;
-			vertices.push(vector.x / scale, vector.y / scale, vector.z / scale);
+
+			if(self	.mode === ImageGeometry.VERTICAL)
+			{
+				vertices.push(vector.y / scale, vector.x / scale, vector.z / scale);
+				uvs.push(vector.y / image.naturalHeight, vector.x / image.naturalWidth);
+			}
+			else
+			{
+				vertices.push(vector.x / scale, (image.naturalHeight - vector.y) / scale, vector.z / scale);
+				uvs.push(vector.x / image.naturalWidth, (image.naturalHeight - vector.y) / image.naturalHeight);
+			}
 			normals.push(0, -1, 0);
-			uvs.push(vector.x / image.naturalWidth, (image.naturalHeight - vector.y) / image.naturalHeight);
 		}
 
 		for(var i = 0; i < triangles.length; i++)
