@@ -27,9 +27,11 @@ function ImageGeometry(source)
 	this.threshold = 40;
 
 	/**
-	 * Density of the generated geometry in px/triangles
+	 * Density of the generated geometry in percentage.
 	 *
-	 * Bigger value means less triangles.
+	 * Bigger value means more triangles.
+	 *
+	 * Value between 0 and 1.
 	 * 
 	 * @property desity.
 	 * @type {Number}
@@ -52,11 +54,16 @@ ImageGeometry.prototype.load = function(url, onLoad)
 
 	var image = document.createElement("img");
 	image.src = source;
+	image.style.position = "absolute";
+	image.style.zIndex = "100";
+	image.style.height = "50%";
 	image.onload = function()
 	{
 		self.generate(image);		
 		onLoad(self);
 	};
+	
+	document.body.appendChild(image);
 };
 
 /**
@@ -73,7 +80,7 @@ ImageGeometry.prototype.generate = function(image)
 	var canvas = document.createElement("canvas");
 	canvas.width = image.naturalWidth;
 	canvas.height = image.naturalHeight;
-	
+
 	//Draw image
 	var context = canvas.getContext("2d");
 	context.drawImage(image, 0, 0);
@@ -124,7 +131,7 @@ ImageGeometry.prototype.generate = function(image)
 				{
 					transitions++;
 					currentTransparent = isTransparent;
-					points.push(new THREE.Vector3(x, y, 0));
+					points.push(new THREE.Vector3(x, canvas.height - y, 0));
 				}
 				//Last pixel
 				else if(x === canvas.width - 1)
@@ -132,7 +139,7 @@ ImageGeometry.prototype.generate = function(image)
 					if(isTransparent === false)
 					{
 						transitions++;
-						points.push(new THREE.Vector3(x, y, 0));
+						points.push(new THREE.Vector3(x, canvas.height - y, 0));
 					}
 				}
 			}
@@ -216,18 +223,27 @@ ImageGeometry.prototype.generate = function(image)
 		{
 			for(var l = 0; l < regions.length; l++)
 			{
-				//Step size
-				var step = 1;
-
 				//Array of THREE.Vector3, used to create triangles
 				var points = [];
-				
-				//Iterate points of the region
-				for(var x = 0; x < regions[l].points.length; x += step)
-				{
-					var linePoints = regions[l].points[x];
 
-					//Iterate points of the region
+				//Step size
+				var step;
+				if(regions[l].points.length < 3)
+				{
+					step = 1;
+				}
+				else
+				{
+					step = regions[l].points.length - 1;
+					while(step > 1 && (step % (regions[l].points.length - 1)) !== 0)
+					{
+						step--;
+					}
+				}
+
+				//Iterate points of the line in the region
+				function processLine(linePoints)
+				{
 					for(var m = k; m < linePoints.length && m < (k + 2); m++)
 					{
 						points.push(linePoints[m]);
@@ -245,15 +261,16 @@ ImageGeometry.prototype.generate = function(image)
 						}
 					}
 				}
+
+				//Iterate points of the region
+				for(var x = 0; x < regions[l].points.length; x += step)
+				{
+					processLine(regions[l].points[x]);
+				}
 			}
 		}
 
 		return triangles;
-	}
-
-	function interpolatePoints(index, regions)
-	{
-
 	}
 
 	//Calculate the bounding box of the image.
@@ -294,7 +311,7 @@ ImageGeometry.prototype.generate = function(image)
 			var scale = image.naturalWidth;
 			vertices.push(vector.x / scale, vector.y / scale, vector.z / scale);
 			normals.push(0, -1, 0);
-			uvs.push(vector.x / image.naturalWidth, (image.naturalHeight - vector.y) / image.naturalHeight);
+			uvs.push(vector.x / image.naturalWidth, vector.y / image.naturalHeight);
 		}
 
 		for(var i = 0; i < triangles.length; i++)

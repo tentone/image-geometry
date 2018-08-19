@@ -23,7 +23,7 @@
 
 		var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
 
-		var wireframe = new THREE.MeshBasicMaterial({wireframe:true, transparent:true, opacity:0.2, color:0xFFFF00});
+		var wireframe = new THREE.MeshBasicMaterial({wireframe:true, transparent:true, opacity:0.5, color:0xFFFF00});
 
 		var controls = new THREE.OrbitControls(camera, canvas);
 
@@ -45,21 +45,20 @@
 		}
 		animate();
 
-		var source = "data/umbrella.png";
+		var source = "data/grass.png";
 		var geometry = new ImageGeometry();
-		geometry.load(source, function()
+		
+		geometry.load(source, function(geometry)
 		{
-			var texture = new THREE.TextureLoader().load(source);
-			var material = new THREE.MeshBasicMaterial(
-			{
-				side: THREE.DoubleSide,
-				map: texture
-			});
 			//THREE.ShaderLib.basic
+			var texture = new THREE.TextureLoader().load(source);
+			var material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture});
 			
 			scene.add(new THREE.Mesh(geometry, material));
 			scene.add(new THREE.Mesh(geometry, wireframe));
 		});
+
+
 	</script>
 </body>
 </html>
