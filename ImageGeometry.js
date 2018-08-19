@@ -131,7 +131,7 @@ ImageGeometry.prototype.generate = function(image)
 				{
 					transitions++;
 					currentTransparent = isTransparent;
-					points.push(new THREE.Vector3(x, canvas.height - y, 0));
+					points.push(new THREE.Vector3(x, y, 0));
 				}
 				//Last pixel
 				else if(x === canvas.width - 1)
@@ -139,7 +139,7 @@ ImageGeometry.prototype.generate = function(image)
 					if(isTransparent === false)
 					{
 						transitions++;
-						points.push(new THREE.Vector3(x, canvas.height - y, 0));
+						points.push(new THREE.Vector3(x, y, 0));
 					}
 				}
 			}
@@ -311,7 +311,7 @@ ImageGeometry.prototype.generate = function(image)
 			var scale = image.naturalWidth;
 			vertices.push(vector.x / scale, vector.y / scale, vector.z / scale);
 			normals.push(0, -1, 0);
-			uvs.push(vector.x / image.naturalWidth, vector.y / image.naturalHeight);
+			uvs.push(vector.x / image.naturalWidth, (image.naturalHeight - vector.y) / image.naturalHeight);
 		}
 
 		for(var i = 0; i < triangles.length; i++)
