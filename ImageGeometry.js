@@ -105,7 +105,6 @@ ImageGeometry.prototype.generate = function(image)
 		//var size = image.naturalWidth > image.naturalHeight ? image.naturalWidth : image.naturalHeight;
 		//canvas.width = size;
 		//canvas.height = size;
-		
 		context.translate(canvas.width / 2, canvas.height / 2);
 		context.rotate(Math.PI/2);
 		context.translate(-canvas.width / 2, -canvas.height / 2);

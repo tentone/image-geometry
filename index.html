@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset=utf-8>
-	<title>Mesh 2D</title>
+	<title>Image Geometry</title>
 </head>
 <body>
 	<script type="text/javascript" src="lib/three.min.js"></script>
@@ -22,10 +22,33 @@
 		document.body.appendChild(canvas);
 
 		var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 		var wireframe = new THREE.MeshBasicMaterial({wireframe:true, transparent:true, opacity:0.5, color:0xFFFF00});
 
 		var controls = new THREE.OrbitControls(camera, canvas);
+
+		scene.add(new THREE.AmbientLight(0x777777));
+
+		var directional = new THREE.DirectionalLight(0x777777);
+		directional.position.set(1, 10, 7);
+		directional.castShadow = true;
+		directional.shadow.mapSize.width = 1024;
+		directional.shadow.mapSize.height = 1024;
+		directional.shadow.camera.near = 0.5;
+		directional.shadow.camera.far = 100;
+		directional.shadow.camera.right = 0.5;
+		directional.shadow.camera.left = -0.5;
+		directional.shadow.camera.top = 1;
+		directional.shadow.camera.down = 0;
+		scene.add(directional);
+
+		var floor = new THREE.Mesh(new THREE.BoxBufferGeometry(3, 0.2, 3), new THREE.MeshPhongMaterial());
+		floor.castShadow = true;
+		floor.receiveShadow = true;
+		floor.position.set(0, -0.1, 0);
+		scene.add(floor);
 
 		document.body.onresize = function()
 		{
@@ -45,56 +68,103 @@
 		}
 		animate();
 
-		var source = "data/umbrella.png";
-		
+		var text = document.createElement("div");
+		text.style.color = "#FFFFFF";
+		text.style.position = "absolute";
+		text.style.top = "5px";
+		text.style.left = "5px";
+		text.style.width = "400px";
+		text.style.height = "20px";
+		text.innerHTML = "ImageGeometry | Drag and drop image, to test."
+		document.body.appendChild(text);
+
 		var image = document.createElement("img");
-		image.src = source;
+		image.src = "data/umbrella.png";
 		image.style.position = "absolute";
 		image.style.zIndex = "100";
-		image.style.height = "30%";
+		image.style.top = "30px";
+		image.style.height = "200px";
 		document.body.appendChild(image);
 
-		image.onload = function()
+		var geometry = null;
+		var texture = null;
+		var material = new THREE.MeshPhongMaterial({side:THREE.DoubleSide, map:texture, alphaTest:0.5, transparent:true});
+		var object = null;
+
+		function createMesh()
 		{
-			var geometry = new ImageGeometry();
+			if(object !== null)
+			{
+				scene.remove(object);
+				object = null;
+			}
+
+			if(geometry !== null)
+			{
+				geometry.dispose();
+				geometry = null;
+			}
+
+			geometry = new ImageGeometry();
+			geometry.detail = slider.value;
 			geometry.generate(image);
 
-			var texture = new THREE.TextureLoader().load(source);
-			var material = new THREE.MeshBasicMaterial({side:THREE.DoubleSide, map:texture, transparent:true});
-
-			var object = new THREE.Mesh(geometry, material);
+			object = new THREE.Mesh(geometry, material);
+			object.castShadow = true;
+			object.position.set(-0.5, 0, 0);
 			scene.add(object);
 
 			var helper = new THREE.Mesh(geometry, wireframe);
-			scene.add(helper);
+			object.add(helper);
+		}
 
-			var slider = document.createElement("input");
-			slider.type = "range";
-			slider.style.position = "absolute";
-			slider.style.width = "150px";
-			slider.style.height = "20px";
-			slider.style.top = "33%";
-			slider.max = 0.4;
-			slider.min = 0.0;
-			slider.step = 0.01;
-			slider.value = geometry.detail;
-			slider.onchange = function()
-			{
-				geometry.dispose();
-				geometry = new ImageGeometry();
-				geometry.detail = slider.value;
-				geometry.generate(image);
-
-				scene.remove(object);
-				object = new THREE.Mesh(geometry, material);
-				scene.add(object);
-
-				scene.remove(helper);
-				helper = new THREE.Mesh(geometry, wireframe);
-				scene.add(helper);
-			}
-			document.body.appendChild(slider);
+		document.body.ondragover = function(event)
+		{
+			event.preventDefault();
 		};
+
+		document.body.ondrop = function(event)
+		{
+			event.preventDefault();
+			if(event.dataTransfer.files.length > 0)
+			{
+				var reader = new FileReader();
+				reader.onload = function()
+				{
+					image.src = reader.result;
+				};
+				reader.readAsDataURL(event.dataTransfer.files[0]);
+			}
+		};
+
+		image.onload = function()
+		{
+			if(material.map !== null)
+			{
+				material.map.dispose();
+			}
+
+			material.map = new THREE.TextureLoader().load(this.src);
+
+
+			createMesh();
+		};
+
+		var slider = document.createElement("input");
+		slider.type = "range";
+		slider.style.position = "absolute";
+		slider.style.width = "150px";
+		slider.style.height = "20px";
+		slider.style.top = "240px";
+		slider.max = 0.4;
+		slider.min = 0.0;
+		slider.step = 0.01;
+		slider.value = 0.05;
+		slider.onchange = function()
+		{
+			createMesh();
+		}
+		document.body.appendChild(slider);
 	</script>
 </body>
 </html>
