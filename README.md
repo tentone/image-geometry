@@ -4,7 +4,11 @@
  - Can be usefull for instancing shadowed 2D elements like fur or vegetation.
 
 ## Example
+ - Live example, drag and drop image to test
  - https://tentone.github.io/ImageGeometry/
+
+## Screenshot
+
 
 ## Algorithm
  - The algorithm goes through each horizontal line of the image.
