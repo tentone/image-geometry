@@ -8,7 +8,7 @@
  - https://tentone.github.io/ImageGeometry/
 
 ## Screenshot
-
+![alt tag](https://raw.githubusercontent.com/tentone/ImageGeometry/master/screenshot/a.jpg)![alt tag](https://raw.githubusercontent.com/tentone/ImageGeometry/master/screenshot/b.jpg)![alt tag](https://raw.githubusercontent.com/tentone/ImageGeometry/master/screenshot/c.jpg)
 
 ## Algorithm
  - The algorithm goes through each horizontal line of the image.
